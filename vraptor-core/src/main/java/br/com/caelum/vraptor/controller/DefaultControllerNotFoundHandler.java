@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package br.com.caelum.vraptor.controller;
 
 import java.io.IOException;
-
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Event;
+import javax.inject.Inject;
 import javax.servlet.ServletException;
-
 import br.com.caelum.vraptor.InterceptionException;
 import br.com.caelum.vraptor.core.RequestInfo;
+import br.com.caelum.vraptor.events.ControllerNotFound;
 
 /**
  * Default 404 component. It defers the request back to container
@@ -34,12 +34,27 @@ import br.com.caelum.vraptor.core.RequestInfo;
 @ApplicationScoped
 public class DefaultControllerNotFoundHandler implements ControllerNotFoundHandler {
 
-	@Override
-	public void couldntFind(RequestInfo request) {
-		try {
-			request.getChain().doFilter(request.getRequest(), request.getResponse());
-		} catch (IOException | ServletException e) {
-			throw new InterceptionException(e);
-		}
-	}
+    private final Event<ControllerNotFound> event;
+
+    /**
+	 * @deprecated CDI eyes only
+	 */
+    DefaultControllerNotFoundHandler() {
+        this(null);
+    }
+
+    @Inject
+    public DefaultControllerNotFoundHandler(Event<ControllerNotFound> event) {
+        this.event = event;
+    }
+
+    @Override
+    public void couldntFind(RequestInfo request) {
+        event.fire(new ControllerNotFound());
+        try {
+            request.getChain().doFilter(request.getRequest(), request.getResponse());
+        } catch (IOExceptionServletException |  e) {
+            throw new InterceptionException(e);
+        }
+    }
 }
